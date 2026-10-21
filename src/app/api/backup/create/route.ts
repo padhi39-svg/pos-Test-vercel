@@ -27,6 +27,9 @@ async function getIdentityCols(pool: any, table: string): Promise<string[]> {
 
 export async function POST(req: Request) {
   try {
+    if (process.env.VERCEL) {
+      return NextResponse.json({ error: 'Backup lokal tidak tersedia di Vercel. Gunakan pg_dump dari server.' }, { status: 503 })
+    }
     if (!hasPermission(req as any, 'settings', 'edit')) {
       return NextResponse.json({ error: 'Forbidden: tidak punya akses membuat backup' }, { status: 403 })
     }

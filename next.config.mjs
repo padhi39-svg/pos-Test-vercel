@@ -4,11 +4,8 @@ const nextConfig = {
   swcMinify: false,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     config.optimization.minimize = false
-    if (isServer) {
-      config.externals = [...(config.externals || []), 'exceljs', 'better-sqlite3']
-    }
     return config
   },
 };

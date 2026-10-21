@@ -5,6 +5,9 @@ import { hasPermission } from '@/lib/permissions'
 
 export async function GET(req: Request) {
   try {
+    if (process.env.VERCEL) {
+      return NextResponse.json({ backups: [], note: 'Backup lokal tidak tersedia di Vercel' })
+    }
     if (!hasPermission(req as any, 'settings', 'view')) {
       return NextResponse.json({ error: 'Forbidden: tidak punya akses melihat daftar backup' }, { status: 403 })
     }

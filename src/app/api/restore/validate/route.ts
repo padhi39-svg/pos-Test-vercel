@@ -6,6 +6,9 @@ import { hasPermission } from '@/lib/permissions'
 
 export async function POST(req: Request) {
   try {
+    if (process.env.VERCEL) {
+      return NextResponse.json({ error: 'Restore lokal tidak tersedia di Vercel' }, { status: 503 })
+    }
     if (!hasPermission(req as any, 'settings', 'edit')) {
       return NextResponse.json({ error: 'Forbidden: tidak punya akses memvalidasi restore' }, { status: 403 })
     }
