@@ -22,7 +22,13 @@ function normalizeRow(r: any) {
   return o
 }
 
+let tablesEnsured: Promise<void> | null = null
 async function ensureTables() {
+  if (!tablesEnsured) tablesEnsured = ensureTablesOnce().catch((e) => { tablesEnsured = null; throw e })
+  return tablesEnsured
+}
+
+async function ensureTablesOnce() {
   await rawRun(`
     CREATE TABLE IF NOT EXISTS floors (
       id SERIAL PRIMARY KEY,

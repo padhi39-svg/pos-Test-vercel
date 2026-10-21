@@ -1,15 +1,9 @@
-const CACHE = "resto-pos-v1";
-const STATIC_ASSETS = [
-  "/",
-  "/manifest.json",
-  "/icon.svg",
-];
+const CACHE = "resto-pos-v2";
+const STATIC_ASSETS = ["/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -25,36 +19,30 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (request.method !== "GET") return;
+
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/api/")) return;
 
-  // API calls: network only
-  if (url.pathname.startsWith("/api/")) {
-    return;
-  }
-
-  // Static assets: cache-first
-  if (
+  const cacheable =
     request.destination === "style" ||
     request.destination === "script" ||
     request.destination === "font" ||
-    request.destination === "image"
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
-    );
-    return;
-  }
+    request.destination === "image";
 
-  // Pages & others: network-first, fallback to cache
+  if (!cacheable) return;
+
   event.respondWith(
-    fetch(request)
-      .then((res) => {
-        if (res.ok) {
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((res) => {
+        if (res && res.ok) {
           const clone = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, clone));
+          caches.open(CACHE).then((cache) => cache.put(request, clone)).catch(() => {});
         }
         return res;
-      })
-      .catch(() => caches.match(request))
+      });
+    })
   );
 });
