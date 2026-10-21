@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
 import { getLandingSettings, upsertLandingSettings } from '@/lib/repositories/promoRepository'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   if (!(await hasPermission(req, 'promo_settings', 'view'))) {
     return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 })

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSettingPin, setSettingPin } from '@/lib/repositories/promoRepository'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const pin = await getSettingPin()
   return NextResponse.json({ set: !!pin })

@@ -8,14 +8,18 @@ types.setTypeParser(1082, (val: string) => val)
 
 const isServerless = !!process.env.VERCEL
 
+const dbUrl = process.env.DATABASE_URL || ''
+const needsRelaxedSsl = /supabase\.(co|com)/i.test(dbUrl)
+
 const POOL_CONFIG = {
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl,
   max: isServerless ? 1 : 5,
   idleTimeoutMillis: isServerless ? 1000 : 5000,
   connectionTimeoutMillis: isServerless ? 10000 : 3000,
   query_timeout: 30000,
   statement_timeout: 30000,
   allowExitOnIdle: isServerless,
+  ...(needsRelaxedSsl ? { ssl: { rejectUnauthorized: false } } : {}),
 }
 
 export function getDb() {
