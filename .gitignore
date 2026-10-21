@@ -12,19 +12,19 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Database
-data/
+/data/
 *.db
 *.sqlite3
 *.dump
 db_dump.sql
-data.zip
+/data.zip
 
 # Backup files
-backups/
-backup/
+/backups/
+/backup/
 
 # Binaries & archives
-local-helper/
+/local-helper/
 *.exe
 *.rar
 *.zip
