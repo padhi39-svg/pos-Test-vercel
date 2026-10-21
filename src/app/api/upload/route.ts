@@ -20,6 +20,7 @@ async function uploadToStorage(buffer: Buffer, filename: string, contentType: st
       method: 'POST',
       headers: {
         Authorization: `Bearer ${SUPABASE_KEY}`,
+        apikey: SUPABASE_KEY as string,
         'Content-Type': contentType,
         'x-upsert': 'true',
       },
