@@ -76,3 +76,8 @@ Thumbs.db
 .eslintcache
 *.tsbuildinfo
 next-env.d.ts
+
+# Local migration artifacts
+/dump-supabase.sql
+/restore-supabase.log
+/supabase-pass.txt
