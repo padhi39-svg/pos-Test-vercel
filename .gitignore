@@ -81,3 +81,5 @@ next-env.d.ts
 /dump-supabase.sql
 /restore-supabase.log
 /supabase-pass.txt
+.vercel
+.env*
