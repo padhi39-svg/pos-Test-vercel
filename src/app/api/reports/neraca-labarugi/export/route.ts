@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/db'
 import { rawGet } from '@/db/raw'
+import { hasPermission } from '@/lib/permissions'
 
 export async function GET(req: NextRequest) {
   try {

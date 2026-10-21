@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { rawAll } from '@/db/raw'
+
+export const dynamic = 'force-dynamic'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'resto-db.json')
 
@@ -22,9 +25,7 @@ async function writeDB(data: any) {
 
 export async function GET() {
   try {
-    const db = await readDB()
-    const customers = db.master_customer.filter((item: any) => !item.isdelete)
-    
+    const customers = await rawAll<any>('SELECT * FROM master_customer WHERE COALESCE(isdelete, 0) = 0 ORDER BY name ASC')
     return NextResponse.json(customers)
   } catch (error) {
     console.error('Error fetching customers:', error)

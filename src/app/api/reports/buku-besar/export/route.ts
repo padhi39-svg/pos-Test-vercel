@@ -10,8 +10,10 @@ export async function GET(req: NextRequest) {
     }
     const url = new URL(req.url)
     const accountCode = url.searchParams.get('accountCode') || ''
-    const startDate = url.searchParams.get('startDate') || ''
-    const endDate = url.searchParams.get('endDate') || ''
+    const startParam = url.searchParams.get('startDate') || ''
+    const endParam = url.searchParams.get('endDate') || ''
+    const startDate = startParam && !isNaN(new Date(startParam).getTime()) ? startParam : '2000-01-01'
+    const endDate = endParam && !isNaN(new Date(endParam).getTime()) ? endParam : new Date().toISOString().slice(0, 10)
 
     const XLSX = await import('xlsx').then(m => m.default || m)
     const wb = XLSX.utils.book_new()

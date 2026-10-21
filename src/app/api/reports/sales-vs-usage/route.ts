@@ -77,7 +77,11 @@ export async function GET(request: NextRequest) {
     const recipeMap = new Map<number, Array<{ ingredient_id: number; qty: number; unit_ratio: number }>>()
     if (barangIds.length > 0) {
       const recipeRows = await rawAll<any>(
-        `SELECT barang_jadi as barang_id, ingredient_id, COALESCE(qty,0) as qty, COALESCE(unit_ratio,1) as unit_ratio FROM barang_recipes WHERE barang_jadi = ANY($1::int[]) ORDER BY id ASC`,
+        `SELECT r.barang_id, r.ingredient_id, COALESCE(r.quantity,0) as qty, COALESCE(bu.ratio,1) as unit_ratio
+         FROM barang_recipes r
+         LEFT JOIN barang_units bu ON bu.id = r.unit_id
+         WHERE r.barang_id = ANY($1::int[])
+         ORDER BY r.id ASC`,
         [barangIds]
       )
       for (const r of recipeRows) {

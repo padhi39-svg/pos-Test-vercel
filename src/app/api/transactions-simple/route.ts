@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { rawAll } from '@/db/raw'
+
+export const dynamic = 'force-dynamic'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'resto-db.json')
 
@@ -22,8 +25,8 @@ async function writeDB(data: any) {
 
 export async function GET() {
   try {
-    const db = await readDB()
-    return NextResponse.json(db.transactions)
+    const rows = await rawAll<any>('SELECT * FROM transactions ORDER BY id DESC')
+    return NextResponse.json(rows)
   } catch (error) {
     console.error('Error fetching transactions:', error)
     return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })

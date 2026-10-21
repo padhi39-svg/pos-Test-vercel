@@ -21,9 +21,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         i.isdelete, i.created_at, i.updated_at
       FROM master_ingredient i
       LEFT JOIN master_kategori k ON i.kategori_id = k.id
-      LEFT JOIN master_spesifikasi s ON i.spesifikasi_id = s.id
-      LEFT JOIN master_merk m ON i.merk_id = m.id
-      WHERE i.id = ? AND i.COALESCE(isdelete, 0) = 0
+      LEFT JOIN master_spesifikasi s ON NULLIF(i.spesifikasi_id, '')::int = s.id
+      LEFT JOIN master_merk m ON NULLIF(i.merk_id, '')::int = m.id
+      WHERE i.id = ? AND COALESCE(i.isdelete, 0) = 0
     `, [id]) as any
     
     if (!ingredient) {
@@ -80,8 +80,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         i.isdelete, i.created_at, i.updated_at
       FROM master_ingredient i
       LEFT JOIN master_kategori k ON i.kategori_id = k.id
-      LEFT JOIN master_spesifikasi s ON i.spesifikasi_id = s.id
-      LEFT JOIN master_merk m ON i.merk_id = m.id
+      LEFT JOIN master_spesifikasi s ON NULLIF(i.spesifikasi_id, '')::int = s.id
+      LEFT JOIN master_merk m ON NULLIF(i.merk_id, '')::int = m.id
       WHERE i.id = ?
     `, [id])
     

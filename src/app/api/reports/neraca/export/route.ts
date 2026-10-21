@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
       ? `${periodInfo.name} (${periodInfo.start_date} s.d ${periodInfo.end_date})`
       : `Sampai dengan ${asOf}`
 
-    const XLSX = (await import('xlsx')).default
+    const XLSX = await import('xlsx').then(m => m.default || m)
     const wb = XLSX.utils.book_new()
 
     const rows: any[][] = []

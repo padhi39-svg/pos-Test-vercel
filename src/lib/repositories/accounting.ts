@@ -406,13 +406,15 @@ export async function getJurnalHarian(startDate?: string, endDate?: string, jour
 
 // ---- Buku Besar ----
 export async function getBukuBesar(accountCode?: string, startDate?: string, endDate?: string) {
-  const d = new Date(startDate!); d.setDate(d.getDate() - 1)
-  const beforeStart = d.toISOString().slice(0, 10)
+  const start = startDate && !isNaN(new Date(startDate).getTime()) ? startDate : '2000-01-01'
+  const end = endDate && !isNaN(new Date(endDate).getTime()) ? endDate : new Date().toISOString().slice(0, 10)
+  const d = new Date(start); d.setDate(d.getDate() - 1)
+  const beforeStart = start === '2000-01-01' ? '2000-01-01' : d.toISOString().slice(0, 10)
   const allBefore = await getJournalEntriesFromTable('2000-01-01', beforeStart)
-  const entries = await getJournalEntriesFromTable(startDate || '', endDate || '')
+  const entries = await getJournalEntriesFromTable(start, end)
   function pushRows(rows: any[], e: any, balBefore: number, nb: string, isSaldoAwal: boolean): number {
     const newBalance = isSaldoAwal ? balBefore : (balBefore + (nb === 'D' ? e.debit - e.credit : e.credit - e.debit))
-    rows.push({ entry_date: isSaldoAwal ? startDate : e.entry_date, source_number: e.source_number || '', description: isSaldoAwal ? 'Saldo Awal' : (e.description || ''), debit: e.debit || 0, credit: e.credit || 0, balance: Math.round(newBalance * 100) / 100, is_balance: isSaldoAwal })
+    rows.push({ entry_date: isSaldoAwal ? start : e.entry_date, source_number: e.source_number || '', description: isSaldoAwal ? 'Saldo Awal' : (e.description || ''), debit: e.debit || 0, credit: e.credit || 0, balance: Math.round(newBalance * 100) / 100, is_balance: isSaldoAwal })
     return newBalance
   }
   if (!accountCode) {
@@ -425,7 +427,7 @@ export async function getBukuBesar(accountCode?: string, startDate?: string, end
       const filtered = entries.filter(e => e.account_code === acct.code)
       if (!filtered.length && runningBalance === 0) continue
       const rows: any[] = []
-      runningBalance = pushRows(rows, { account_code: acct.code, account_name: acct.name, entry_date: startDate, source_number: '', description: 'Saldo Awal', debit: 0, credit: 0 }, runningBalance, nb, true)
+      runningBalance = pushRows(rows, { account_code: acct.code, account_name: acct.name, entry_date: start, source_number: '', description: 'Saldo Awal', debit: 0, credit: 0 }, runningBalance, nb, true)
       for (const e of filtered) runningBalance = pushRows(rows, e, runningBalance, nb, false)
       result.push({ account_code: acct.code, account_name: acct.name, rows })
     }
@@ -438,7 +440,7 @@ export async function getBukuBesar(accountCode?: string, startDate?: string, end
   for (const e of allBefore) { if (e.account_code === accountCode) runningBalance += nb === 'D' ? e.debit - e.credit : e.credit - e.debit }
   const filtered = entries.filter(e => e.account_code === accountCode)
   const rows: any[] = []
-  runningBalance = pushRows(rows, { account_code: acct.code, account_name: acct.name, entry_date: startDate, source_number: '', description: 'Saldo Awal', debit: 0, credit: 0 }, runningBalance, nb, true)
+  runningBalance = pushRows(rows, { account_code: acct.code, account_name: acct.name, entry_date: start, source_number: '', description: 'Saldo Awal', debit: 0, credit: 0 }, runningBalance, nb, true)
   for (const e of filtered) runningBalance = pushRows(rows, e, runningBalance, nb, false)
   return { mode: 'single', account_code: accountCode, account_name: acct.name, rows }
 }

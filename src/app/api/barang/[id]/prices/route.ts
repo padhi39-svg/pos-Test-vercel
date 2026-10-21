@@ -13,7 +13,7 @@ export async function GET(
     
     // Get barang info
     const barang = await rawGet(`
-      SELECT id, code, name, stock_current, smallest_unit
+      SELECT id, code, name
       FROM master_barang 
       WHERE id = ? AND isdelete = 0
     `, [barangId]) as any
@@ -70,21 +70,23 @@ export async function GET(
       
       unitsWithPrices = [{
         unitId: 0,
-        unitName: barang.smallest_unit || 'PCS',
+        unitName: 'PCS',
         ratio: 1,
         isSmallest: true,
         price: barangWithPrice?.hpp || 0,
         effectiveDate: null
       }]
     }
+
+    const smallestUnitName = unitsWithPrices[0]?.unitName || 'PCS'
     
     return NextResponse.json({
       barang: {
         id: barang.id,
         code: barang.code,
         name: barang.name,
-        stockCurrent: barang.stock_current,
-        smallestUnit: barang.smallest_unit
+        stockCurrent: 0,
+        smallestUnit: smallestUnitName
       },
       units: unitsWithPrices
     })

@@ -20,7 +20,7 @@ export async function getPurchaseRecap(from?: string, to?: string, type?: string
   const colTotal = col('total')
   const colSupplierId = col('supplier_id') || 'supplier_id'
 
-  const dateExpr = `DATE(COALESCE(${colPurchaseDate ? `p.${colPurchaseDate}` : 'NULL'}, p.${colCreatedAt}::text))`
+  const dateExpr = `COALESCE(${colPurchaseDate ? `p.${colPurchaseDate}::text` : 'NULL'}, p.${colCreatedAt}::text)::date`
 
   let query = `
     SELECT p.id, p.purchase_number AS transaction_number, ${dateExpr} AS transaction_date,
@@ -39,7 +39,7 @@ export async function getPurchaseRecap(from?: string, to?: string, type?: string
   if (from) { query += ` AND ${dateExpr} >= ?`; params.push(from) }
   if (to) { query += ` AND ${dateExpr} <= ?`; params.push(to) }
   if (type) { query += ` AND COALESCE(${colIsReturn.startsWith('p.') ? colIsReturn : `p.${colIsReturn}`}, 0) = ?`; params.push(Number(type) ? 1 : 0) }
-  query += ` ORDER BY COALESCE(${colPurchaseDate ? `p.${colPurchaseDate}` : 'NULL'}, p.${colCreatedAt}::text) DESC, p.purchase_number DESC`
+  query += ` ORDER BY ${dateExpr} DESC, p.purchase_number DESC`
   return rawAll<any>(query, params)
 }
 
@@ -65,7 +65,7 @@ export async function getPurchaseDetail(from?: string, to?: string, purchaseNumb
   const colItemDiscAmt = piCol('discount_amount')
   const colTotalPrice = piCol('total_price')
 
-  const dateExpr = `DATE(COALESCE(${colPurchaseDate ? `p.${colPurchaseDate}` : 'NULL'}, p.${colCreatedAt}::text))`
+  const dateExpr = `COALESCE(${colPurchaseDate ? `p.${colPurchaseDate}::text` : 'NULL'}, p.${colCreatedAt}::text)::date`
 
   let query = `
     SELECT p.id as purchase_id, p.purchase_number as purchase_number, ${dateExpr} as purchase_date,
@@ -90,6 +90,6 @@ export async function getPurchaseDetail(from?: string, to?: string, purchaseNumb
   if (purchaseNumber) { query += ` AND p.purchase_number LIKE ?`; params.push(`%${purchaseNumber}%`) }
   if (type !== null && type !== '') { query += ` AND COALESCE(${colIsReturn.startsWith('p.') ? colIsReturn : `p.${colIsReturn}`}, 0) = ?`; params.push(Number(type) ? 1 : 0) }
   if (barangId) { query += ` AND pi.barang_id = ?`; params.push(barangId) }
-  query += ` ORDER BY COALESCE(${colPurchaseDate ? `p.${colPurchaseDate}` : 'NULL'}, p.${colCreatedAt}::text) DESC, p.purchase_number DESC, pi.id ASC`
+  query += ` ORDER BY ${dateExpr} DESC, p.purchase_number DESC, pi.id ASC`
   return rawAll<any>(query, params)
 }

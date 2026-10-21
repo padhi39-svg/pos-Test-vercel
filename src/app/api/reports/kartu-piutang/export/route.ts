@@ -10,12 +10,13 @@ export async function GET(req: NextRequest) {
     }
     const pool = (getDb() as any).$client
     const url = new URL(req.url)
-    const startDate = url.searchParams.get('startDate') || ''
-    const endDate = url.searchParams.get('endDate') || ''
+    const startDate = url.searchParams.get('startDate') || '2000-01-01'
+    const endDate = url.searchParams.get('endDate') || new Date().toISOString().slice(0, 10)
     const customerId = url.searchParams.get('customerId') || ''
+    const customerIdParam = customerId ? Number(customerId) : null
     const mode = url.searchParams.get('mode') || 'reguler'
 
-    const cust = await rawGet<any>('SELECT id, name FROM master_customer WHERE id = $1', [customerId])
+    const cust = await rawGet<any>('SELECT id, name FROM master_customer WHERE id = $1', [customerIdParam])
     const customerName = cust?.name || ''
 
     const XLSX = await import('xlsx').then(m => m.default || m)
@@ -27,11 +28,11 @@ export async function GET(req: NextRequest) {
                COALESCE(t.customer_name, (SELECT name FROM master_customer WHERE id = t.customer_id), '') as customer_name
         FROM transactions t
         WHERE t.transaction_date >= $1 AND t.transaction_date <= $2
-          AND t.customer_id = $3
+          AND ($3::int IS NULL OR t.customer_id = $3::int)
           AND COALESCE(t.status, '') NOT IN ('void', 'cancelled')
           AND COALESCE(t.is_return, 0) = 0
         ORDER BY t.transaction_date, t.id
-      `, [startDate, endDate, customerId])
+      `, [startDate, endDate, customerIdParam])
 
       const saleIds = sales.map(s => s.id)
       const paymentsMap: Record<number, any[]> = {}
@@ -55,11 +56,11 @@ export async function GET(req: NextRequest) {
         SELECT id, tanggal as tdate, kode_nota, nominal
         FROM ar_opening_balances
         WHERE tanggal >= $1 AND tanggal <= $2
-          AND customer_id = $3
+          AND ($3::int IS NULL OR customer_id = $3::int)
           AND (status IS NULL OR status != 'void')
           AND nominal > 0
         ORDER BY tanggal, id
-      `, [startDate, endDate, customerId])
+      `, [startDate, endDate, customerIdParam])
 
       interface ExpoRow { tdate: string; kode: string; desc: string; debit: number | ''; kredit: number | '' }
       const allRows: ExpoRow[] = []
@@ -96,22 +97,22 @@ export async function GET(req: NextRequest) {
                'penjualan' as description, 0 as debit, t.total as kredit
         FROM transactions t
         WHERE t.transaction_date >= $1 AND t.transaction_date <= $2
-          AND t.customer_id = $3
+          AND ($3::int IS NULL OR t.customer_id = $3::int)
           AND COALESCE(t.status, '') NOT IN ('void', 'cancelled')
           AND COALESCE(t.is_return, 0) = 0
           AND t.total > 0
-      `, [startDate, endDate, customerId])
+      `, [startDate, endDate, customerIdParam])
 
       const returns = await rawAll<any>(`
         SELECT t.transaction_date as tdate, t.transaction_number as source_number,
                'retur penjualan' as description, ABS(t.total) as debit, 0 as kredit
         FROM transactions t
         WHERE t.transaction_date >= $1 AND t.transaction_date <= $2
-          AND t.customer_id = $3
+          AND ($3::int IS NULL OR t.customer_id = $3::int)
           AND COALESCE(t.status, '') NOT IN ('void', 'cancelled')
           AND COALESCE(t.is_return, 0) = 1
           AND ABS(t.total) > 0
-      `, [startDate, endDate, customerId])
+      `, [startDate, endDate, customerIdParam])
 
       const payments = await rawAll<any>(`
         SELECT p.payment_date as tdate, p.payment_number as source_number,
@@ -119,26 +120,26 @@ export async function GET(req: NextRequest) {
         FROM ar_payments p
         JOIN ar_payment_items pai ON pai.payment_id = p.id
         WHERE p.payment_date >= $1 AND p.payment_date <= $2
-          AND p.customer_id = $3
+          AND ($3::int IS NULL OR p.customer_id = $3::int)
           AND p.status = 'active'
         GROUP BY p.id
-      `, [startDate, endDate, customerId])
+      `, [startDate, endDate, customerIdParam])
 
       const openings = await rawAll<any>(`
         SELECT tanggal as tdate, kode_nota as source_number,
                'saldo awal piutang' as description, 0 as debit, nominal as kredit
         FROM ar_opening_balances
         WHERE tanggal >= $1 AND tanggal <= $2
-          AND customer_id = $3
+          AND ($3::int IS NULL OR customer_id = $3::int)
           AND (status IS NULL OR status != 'void')
           AND nominal > 0
-      `, [startDate, endDate, customerId])
+      `, [startDate, endDate, customerIdParam])
 
       const beforeStart = (() => { const d = new Date(startDate); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10) })()
-      const beforeSales = (await rawGet<any>(`SELECT COALESCE(SUM(t.total),0) as total FROM transactions t WHERE t.transaction_date<=$1 AND t.transaction_date>='2000-01-01' AND t.customer_id=$2 AND COALESCE(t.status,'') NOT IN ('void','cancelled') AND COALESCE(t.is_return,0)=0`, [beforeStart, customerId]))?.total||0
-      const beforeReturns = (await rawGet<any>(`SELECT COALESCE(SUM(ABS(t.total)),0) as total FROM transactions t WHERE t.transaction_date<=$1 AND t.transaction_date>='2000-01-01' AND t.customer_id=$2 AND COALESCE(t.status,'') NOT IN ('void','cancelled') AND COALESCE(t.is_return,0)=1`, [beforeStart, customerId]))?.total||0
-      const beforePayments = (await rawGet<any>(`SELECT COALESCE(SUM(pai.pay_amount),0) as total FROM ar_payments p JOIN ar_payment_items pai ON pai.payment_id=p.id WHERE p.payment_date<=$1 AND p.payment_date>='2000-01-01' AND p.customer_id=$2 AND p.status='active'`, [beforeStart, customerId]))?.total||0
-      const beforeOpenings = (await rawGet<any>(`SELECT COALESCE(SUM(nominal),0) as total FROM ar_opening_balances WHERE tanggal <= $1 AND tanggal>='2000-01-01' AND customer_id=$2 AND (status IS NULL OR status != 'void')`, [beforeStart, customerId]))?.total||0
+      const beforeSales = (await rawGet<any>(`SELECT COALESCE(SUM(t.total),0) as total FROM transactions t WHERE t.transaction_date<=$1 AND t.transaction_date>='2000-01-01' AND ($2::int IS NULL OR t.customer_id=$2::int) AND COALESCE(t.status,'') NOT IN ('void','cancelled') AND COALESCE(t.is_return,0)=0`, [beforeStart, customerIdParam]))?.total||0
+      const beforeReturns = (await rawGet<any>(`SELECT COALESCE(SUM(ABS(t.total)),0) as total FROM transactions t WHERE t.transaction_date<=$1 AND t.transaction_date>='2000-01-01' AND ($2::int IS NULL OR t.customer_id=$2::int) AND COALESCE(t.status,'') NOT IN ('void','cancelled') AND COALESCE(t.is_return,0)=1`, [beforeStart, customerIdParam]))?.total||0
+      const beforePayments = (await rawGet<any>(`SELECT COALESCE(SUM(pai.pay_amount),0) as total FROM ar_payments p JOIN ar_payment_items pai ON pai.payment_id=p.id WHERE p.payment_date<=$1 AND p.payment_date>='2000-01-01' AND ($2::int IS NULL OR p.customer_id=$2::int) AND p.status='active'`, [beforeStart, customerIdParam]))?.total||0
+      const beforeOpenings = (await rawGet<any>(`SELECT COALESCE(SUM(nominal),0) as total FROM ar_opening_balances WHERE tanggal <= $1 AND tanggal>='2000-01-01' AND ($2::int IS NULL OR customer_id=$2::int) AND (status IS NULL OR status != 'void')`, [beforeStart, customerIdParam]))?.total||0
       const openingBalance = Math.round((Number(beforeSales)-Number(beforeReturns)-Number(beforePayments)+Number(beforeOpenings))*100)/100
 
       const combined: any[] = [...sales, ...returns, ...payments, ...openings]

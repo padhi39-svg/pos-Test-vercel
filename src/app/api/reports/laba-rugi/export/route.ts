@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     const data = await getLabaRugi(startDate, endDate)
 
-    const XLSX = (await import('xlsx')).default
+    const XLSX = await import('xlsx').then(m => m.default || m)
     const wb = XLSX.utils.book_new()
 
     const rows: any[][] = []

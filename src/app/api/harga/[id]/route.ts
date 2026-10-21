@@ -20,7 +20,7 @@ export async function GET(
         k.name as kategori_name
       FROM master_barang b
       LEFT JOIN master_kategori k ON b.kategori_id = k.id
-      WHERE b.id = ? AND b.COALESCE(isdelete, 0) = 0
+      WHERE b.id = ? AND COALESCE(b.isdelete, 0) = 0
     `, [barangId]) as any
     
     if (!barang) {
