@@ -1,0 +1,57 @@
+# Dependencies
+node_modules
+
+# Next.js
+.next
+out
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Database
+data/
+
+# Backup files
+backups/
+
+# Rust build artifacts
+bin/print_helper_rs/target/
+bin/tunnel-server/target/
+
+# Android (print_helper_rs)
+bin/print_helper_rs/android-project/.gradle/
+bin/print_helper_rs/android-project/.idea/
+bin/print_helper_rs/android-project/app/build/
+bin/print_helper_rs/android-project/local.properties
+
+# Build output
+dist/
+
+# Deploy archives
+*.tar.gz
+
+# Env files (secrets)
+.env
+.env.docker
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp / Cache
+.turbo
+.eslintcache
+*.tsbuildinfo
+next-env.d.ts

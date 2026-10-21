@@ -1,0 +1,480 @@
+"use client"
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { printApAdvanceById } from '@/lib/printApAdvance'
+import SearchableSelect from '@/components/ui/SearchableSelect'
+import type { SearchableSelectOption } from '@/components/ui/SearchableSelect'
+import Input from '@/components/ui/Input'
+import FormHeader from '@/components/ui/FormHeader'
+
+type Supplier = { id: number; code: string; name: string }
+
+type DetailLine = {
+  temp_id: string
+  account_id: number
+  account_code: string
+  account_name: string
+  notes: string
+  amount: number
+}
+
+type ApAdvanceFormMode = 'new' | 'edit' | 'view'
+
+type ApAdvanceInitial = {
+  id?: number
+  kode_nota?: string
+  tanggal?: string
+  supplier_id?: number
+  supplier_code?: string
+  supplier_name?: string
+  notes?: string
+  detail?: DetailLine[]
+  status?: string
+}
+
+function SupplierPickerModal({ onClose, onPick }: { onClose: ()=>void; onPick: (s: Supplier)=>void }){
+  const [rows, setRows] = useState<Supplier[]>([])
+  const [q, setQ] = useState('')
+  useEffect(()=>{ (async()=>{
+    try{ const res = await fetch('/api/supplier?q='+encodeURIComponent(q), { cache:'no-store' }); const d = await res.json().catch(()=>[]); setRows(Array.isArray(d)? d:[]) }catch{ setRows([]) }
+  })() }, [q])
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-modal shadow-2xl w-[600px] max-w-[95vw] max-h-[85vh] flex flex-col">
+        <div className="p-3 border-b flex items-center justify-between shrink-0">
+          <div className="font-medium text-sm">Pilih Supplier</div>
+          <button className="text-sm text-slate-500 hover:text-slate-700" onClick={onClose}>Tutup</button>
+        </div>
+        <div className="p-3 border-b shrink-0">
+          <input
+            type="text"
+            placeholder="Cari kode/nama..."
+            value={q}
+            onChange={(e)=> setQ(e.target.value)}
+            className="w-full rounded-pill border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-primary focus:ring-2 focus:ring-teal-bg"
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {rows.length===0? (
+            <div className="text-center py-8 text-slate-500 text-sm">Tidak ada supplier ditemukan</div>
+          ) : rows.map(s=> (
+            <button
+              key={s.id}
+              onClick={()=> onPick(s)}
+              className="w-full text-left p-3 rounded-pill hover:bg-teal-bg border border-transparent hover:border-teal-primary transition-colors"
+            >
+              <div className="font-medium text-slate-800 text-sm">{s.code}</div>
+              <div className="text-slate-600 text-xs">{s.name}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PerkiraanPickerModal({ onClose, onApply }: { onClose: ()=>void; onApply: (rows: { temp_id: string; account_id: number; account_code: string; account_name: string }[])=>void }) {
+  const [rows, setRows] = useState<any[]>([])
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [query, setQuery] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const qs = query ? `?filter=kas_bank&q=${encodeURIComponent(query)}` : '?filter=kas_bank'
+        const res = await fetch(`/api/accounts${qs}`, { cache: 'no-store' })
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : []
+        setRows(list)
+      } catch { setRows([]) }
+    }
+    load()
+  }, [query])
+
+  const selected = useMemo(() => rows.filter((r:any) => checked[String(r.id)]).map((a:any) => ({
+    temp_id: `${a.id}`,
+    account_id: a.id,
+    account_code: a.code,
+    account_name: a.name,
+  })), [rows, checked])
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-modal shadow-2xl w-[900px] max-w-[95vw] max-h-[85vh] flex flex-col">
+        <div className="p-3 border-b flex items-center justify-between shrink-0">
+          <div className="font-medium text-sm">Pilih Perkiraan Kas/Bank</div>
+          <button className="text-sm text-slate-500 hover:text-slate-700" onClick={onClose}>Tutup</button>
+        </div>
+        <div className="p-3 border-b shrink-0">
+          <input className="w-full rounded-pill border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-primary focus:ring-2 focus:ring-teal-bg" placeholder="Cari kode/nama akun..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          <table className="min-w-full text-xs">
+            <thead className="sticky top-0 bg-white">
+              <tr className="text-left text-slate-600">
+                <th className="px-3 py-2 w-10"><input type="checkbox" onChange={(e)=>{
+                  const v = e.target.checked
+                  const obj: Record<string, boolean> = {}
+                  rows.forEach((r:any) => obj[String(r.id)] = v)
+                  setChecked(obj)
+                }} /></th>
+                <th className="px-3 py-2">Kode</th>
+                <th className="px-3 py-2">Nama Akun</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length===0? (
+                <tr><td colSpan={3} className="px-3 py-6 text-center text-slate-500">Tidak ada data</td></tr>
+              ): rows.map((r:any) => (
+                <tr key={r.id} className="border-t hover:bg-teal-bg/50">
+                  <td className="px-3 py-2"><input type="checkbox" checked={!!checked[String(r.id)]} onChange={(e)=> setChecked(prev => ({ ...prev, [String(r.id)]: e.target.checked }))} /></td>
+                  <td className="px-3 py-2 font-medium">{r.code}</td>
+                  <td className="px-3 py-2">{r.name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="p-3 border-t flex items-center justify-between text-sm shrink-0">
+          <div>Dipilih: {selected.length} akun</div>
+          <div className="flex gap-2">
+            <button className="px-3 py-1.5 rounded-pill border border-slate-300 hover:bg-slate-50" onClick={()=> setChecked({})}>Hapus Pilihan</button>
+            <button className="px-3 py-1.5 rounded-pill bg-teal-primary hover:bg-teal-dark text-white" onClick={()=> onApply(selected)}>Terapkan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function ApAdvanceForm({
+  mode,
+  initial,
+  advanceId,
+}: {
+  mode: ApAdvanceFormMode
+  initial?: ApAdvanceInitial
+  advanceId?: number
+}) {
+  const router = useRouter()
+  const isView = mode === 'view'
+  const isEdit = mode === 'edit'
+  const headerDisabled = isView || isEdit
+  const isVoided = !!initial?.status && String(initial.status) === 'void'
+
+  const [kodeNota, setKodeNota] = useState(initial?.kode_nota || 'Auto Generate US/YYYY/NNNNNN')
+  const [tanggal, setTanggal] = useState(initial?.tanggal || new Date().toISOString().slice(0, 10))
+  const [allowBackdate, setAllowBackdate] = useState(true)
+  const [supplier, setSupplier] = useState<Supplier|null>(
+    initial?.supplier_id ? { id: initial.supplier_id, code: initial.supplier_code || '', name: initial.supplier_name || '' } : null
+  )
+  const [supplierText, setSupplierText] = useState(
+    initial?.supplier_code && initial?.supplier_name ? `${initial.supplier_code} - ${initial.supplier_name}` : ''
+  )
+  const [notes, setNotes] = useState(initial?.notes || '')
+
+  const [lines, setLines] = useState<DetailLine[]>(() => (initial?.detail || []).map((d, i) => ({ ...d, temp_id: d.temp_id || `init_${i}` })))
+  const [accountOptions, setAccountOptions] = useState<SearchableSelectOption[]>([])
+  const [accountsMap, setAccountsMap] = useState<Record<number, { code: string; name: string }>>({})
+  const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [showPerkModal, setShowPerkModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const nextLineId = useRef(initial?.detail?.length || 0)
+  const [printPrompt, setPrintPrompt] = useState<{ id: number | null; number: string } | null>(null)
+
+  const formatID = (n:number)=> new Intl.NumberFormat('id-ID').format(n)
+  const numKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.ctrlKey||e.metaKey||['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key)) return; if (!/^\d$/.test(e.key)) e.preventDefault() }
+
+  const addLine = () => {
+    nextLineId.current += 1
+    setLines(prev => [...prev, {
+      temp_id: `new_${nextLineId.current}`,
+      account_id: 0,
+      account_code: '',
+      account_name: '',
+      notes: '',
+      amount: 0,
+    }])
+  }
+
+  const total = useMemo(() => lines.reduce((a, b) => a + (Number(b.amount) || 0), 0), [lines])
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      const hasBackdate = d.backdate_permissions?.['keu_uang_muka_supplier'] ?? d.allow_backdate === true
+      setAllowBackdate(Boolean(hasBackdate))
+    }).catch(() => setAllowBackdate(false))
+  }, [])
+
+  useEffect(() => {
+    if (!allowBackdate && !isView) {
+      const today = new Date().toISOString().slice(0, 10)
+      if (tanggal !== today) setTanggal(today)
+    }
+  }, [allowBackdate, isView])
+
+  useEffect(() => {
+    fetch('/api/accounts?filter=kas_bank')
+      .then(r => r.json())
+      .then(data => {
+        const list: any[] = Array.isArray(data) ? data : []
+        const map: Record<number, { code: string; name: string }> = {}
+        const opts: SearchableSelectOption[] = list.map(a => {
+          map[a.id] = { code: a.code, name: a.name }
+          return { value: a.id, label: `${a.code} - ${a.name}` }
+        })
+        setAccountsMap(map)
+        setAccountOptions(opts)
+      })
+      .catch(() => {})
+  }, [])
+
+  const canSave = !!tanggal && !!supplier?.id && lines.some(l => l.account_id && l.amount > 0)
+
+  const handleSave = async () => {
+    if (saving) return
+    if (!canSave) { alert('Lengkapi data sebelum menyimpan'); return }
+    setSaving(true)
+    try {
+      const detail = lines
+        .filter(l => l.account_id && l.account_code && Number(l.amount) > 0)
+        .map(l => ({ account_id: l.account_id, account_code: l.account_code, account_name: l.account_name||'', notes: l.notes||'', amount: Number(l.amount)||0 }))
+      const payload = { tanggal: String(tanggal).slice(0,10), supplier_id: supplier?.id, notes, detail }
+
+      let result: any
+      if (isEdit && advanceId) {
+        const res = await fetch(`/api/ap-advances/${advanceId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        if (!res.ok) { const t = await res.text(); throw new Error(t) }
+        result = await res.json()
+      } else {
+        const res = await fetch('/api/ap-advances', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        if (!res.ok) { const t = await res.text(); throw new Error(t) }
+        result = await res.json()
+      }
+      const newId = Number(result?.id || advanceId || 0)
+      const number = String(result?.kode_nota || initial?.kode_nota || '').trim()
+      setPrintPrompt({ id: newId, number })
+    } catch (e: any) {
+      alert('Gagal menyimpan: ' + (e?.message || 'Unknown error'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <FormHeader
+        title={isView ? 'Detail Uang Muka Supplier' : isEdit ? 'Edit Uang Muka Supplier' : 'Uang Muka Supplier - Baru'}
+        subtitle={isView ? 'Informasi uang muka supplier' : isEdit ? 'Ubah uang muka supplier' : 'Buat uang muka supplier baru'}
+        backHref="/keuangan/uang-muka-supplier"
+      />
+
+      {isVoided && (
+        <div className="bg-coral-bg text-coral-dark px-4 py-2 rounded-lg text-sm font-medium">Transaksi ini sudah void</div>
+      )}
+
+      <div className="container-card p-3 text-xs space-y-3">
+        <div className="flex items-center gap-3">
+          <span className="w-28 text-slate-600 shrink-0">Kode Nota</span>
+          <Input disabled value={kodeNota} className="text-xs" />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="w-28 text-slate-600 shrink-0">Tanggal</span>
+          {headerDisabled ? (
+            <Input type="text" disabled value={tanggal} className="text-xs" />
+          ) : (
+            <input type="date" className="input text-xs" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="w-28 text-slate-600 shrink-0">Supplier</span>
+          {isView || isVoided ? (
+            <span className="text-sm font-medium">{supplierText || '-'}</span>
+          ) : (
+            <div className="flex gap-2 items-center flex-1">
+              <input className="input flex-1 text-xs bg-slate-50" readOnly placeholder="Pilih supplier..." value={supplierText} />
+              <button className="px-3 py-1.5 rounded-pill bg-teal-primary hover:bg-teal-dark text-white text-xs" onClick={()=> setShowSupplierModal(true)}>Pilih</button>
+              {supplier && (<button className="px-3 py-1.5 rounded-pill border border-slate-300 hover:bg-slate-50 text-xs" onClick={()=> { setSupplier(null); setSupplierText('') }}>Reset</button>)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="container-card p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-medium text-sm">Detail</div>
+            <div className="text-xs text-slate-500">Perkiraan kas/bank</div>
+          </div>
+          {!isView && !isVoided && (
+            <div className="flex gap-2">
+              <button className="px-3 py-1.5 rounded-pill border border-slate-300 hover:bg-slate-50" onClick={addLine}>+ Tambah Baris</button>
+              <button className="px-3 py-1.5 rounded-pill bg-teal-primary hover:bg-teal-dark text-white" onClick={()=> setShowPerkModal(true)}>Pilih Perkiraan</button>
+            </div>
+          )}
+        </div>
+
+        <div className="max-h-[440px] overflow-auto border rounded">
+          <table className="min-w-full text-xs">
+            <thead>
+              <tr className="text-left text-slate-600">
+                <th className="px-3 py-2 w-[220px]">Perkiraan</th>
+                <th className="px-3 py-2">Keterangan</th>
+                <th className="px-3 py-2 text-right w-[130px]">Nominal</th>
+                {!isView && !isVoided && <th className="px-3 py-2 text-right w-[60px]">Aksi</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {lines.length===0? (
+                <tr><td colSpan={isView ? 3 : 4} className="px-3 py-6 text-center text-slate-500">Belum ada baris</td></tr>
+              ) : lines.map(x => (
+                <tr key={x.temp_id} className="border-t hover:bg-teal-bg/50">
+                  <td className="px-3 py-2 w-[220px]">
+                    {isView || isVoided ? (
+                      <span className="text-sm">{x.account_code ? `${x.account_code} - ${x.account_name}` : '-'}</span>
+                    ) : (
+                      <SearchableSelect
+                        options={accountOptions}
+                        value={x.account_id || null}
+                        onChange={(v) => {
+                          const acct = v ? accountsMap[Number(v)] : null
+                          setLines(prev => prev.map(r =>
+                            r.temp_id === x.temp_id
+                              ? { ...r, account_id: Number(v) || 0, account_code: acct?.code || '', account_name: acct?.name || '' }
+                              : r
+                          ))
+                        }}
+                        placeholder="Cari perkiraan..."
+                        allowClear={false}
+                      />
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {isView || isVoided ? (
+                      <span>{x.notes || '-'}</span>
+                    ) : (
+                      <input className="w-full border border-slate-300 rounded-pill px-2 py-1 text-xs" value={x.notes} onChange={(e)=> setLines(prev => prev.map(r => r.temp_id===x.temp_id? { ...r, notes: e.target.value }: r))} />
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right w-[130px]">
+                    {isView || isVoided ? (
+                      <span className="font-medium text-teal-primary">{formatID(x.amount)}</span>
+                    ) : (
+                      <input
+                        type="text" inputMode="numeric"
+                        className="input text-right border-teal-primary/40 focus:ring-teal-primary/30"
+                        value={formatID(x.amount)}
+                        onKeyDown={numKeyDown}
+                        onFocus={(e)=>{ e.currentTarget.select(); e.currentTarget.value = String(x.amount) }}
+                        onClick={(e)=>{ (e.currentTarget as HTMLInputElement).select() }}
+                        onBlur={(e)=>{
+                          const raw = Number((e.currentTarget.value||'0').toString().replace(/\./g,'').replace(/,/g,''))
+                          const v = Math.max(0, raw)
+                          setLines(prev => prev.map(r => r.temp_id===x.temp_id? { ...r, amount: v }: r))
+                        }}
+                        onChange={(e)=>{
+                          const raw = (e.currentTarget.value||'').toString().replace(/\./g,'').replace(/,/g,'')
+                          const n = Number(raw||0)
+                          setLines(prev => prev.map(r => r.temp_id===x.temp_id? { ...r, amount: n }: r))
+                        }}
+                      />
+                    )}
+                  </td>
+                  {!isView && !isVoided && (
+                    <td className="px-3 py-2 text-right w-[60px]">
+                      <button className="text-xs text-red-600 hover:text-red-800" onClick={()=> setLines(prev => prev.filter(r => r.temp_id !== x.temp_id))}>Hapus</button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="container-card p-3 space-y-3">
+        <div className="flex items-center gap-4 text-xs">
+          <div>
+            <span className="text-slate-600">Total Nominal</span>
+            <span className="ml-2 font-semibold text-teal-primary">{formatID(total)}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="w-28 text-slate-600 shrink-0">Catatan</span>
+          {isView || isVoided ? (
+            <div className="text-xs">{notes || '-'}</div>
+          ) : (
+            <textarea className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none transition-colors bg-white hover:border-slate-400 focus:ring-2 focus:ring-teal-bg focus:border-teal-primary min-h-[56px] resize-none" value={notes} onChange={(e)=> setNotes(e.target.value)} />
+          )}
+        </div>
+      </div>
+
+      {!isView && !isVoided && (
+        <div className="sticky bottom-0 bg-white p-3 border-t flex items-center justify-end z-10">
+          <div className="flex gap-2">
+            <button onClick={() => router.push('/keuangan/uang-muka-supplier')} className="px-3 py-1.5 rounded-pill border border-slate-300 hover:bg-slate-50">Batal</button>
+            <button onClick={handleSave} disabled={saving || !canSave} className={`px-3 py-1.5 rounded-pill text-white ${saving || !canSave ? 'bg-slate-400 cursor-not-allowed' : 'bg-teal-primary hover:bg-teal-dark'}`}>
+              {saving ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSupplierModal && (
+        <SupplierPickerModal onClose={()=> setShowSupplierModal(false)} onPick={(s)=>{ setSupplier(s); setSupplierText(`${s.code} - ${s.name}`); setShowSupplierModal(false) }} />
+      )}
+      {showPerkModal && (
+        <PerkiraanPickerModal
+          onClose={()=> setShowPerkModal(false)}
+          onApply={(rows)=>{
+            setLines(prev => {
+              const map = new Map(prev.map(x => [x.temp_id, x]))
+              rows.forEach(r => {
+                const existing = map.get(r.temp_id)
+                map.set(r.temp_id, {
+                  temp_id: r.temp_id,
+                  account_id: r.account_id,
+                  account_code: r.account_code,
+                  account_name: r.account_name,
+                  notes: existing?.notes || '',
+                  amount: Number(existing?.amount || 0),
+                })
+              })
+              return Array.from(map.values())
+            })
+            setShowPerkModal(false)
+          }}
+        />
+      )}
+
+      {printPrompt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-modal shadow-2xl w-[420px] max-w-[95vw]">
+            <div className="p-3 border-b font-medium text-sm">Cetak Uang Muka Supplier</div>
+            <div className="p-4 text-sm">
+              <div className="text-slate-600 mb-1">Nomor: {printPrompt.number}</div>
+              <div className="text-slate-600">Apakah Anda ingin langsung mencetak slip uang muka supplier?</div>
+            </div>
+            <div className="p-3 border-t flex items-center justify-end gap-2">
+              <button
+                className="px-3 py-1.5 rounded-pill border border-slate-300 hover:bg-slate-50"
+                onClick={() => { router.push('/keuangan/uang-muka-supplier') }}
+              >Tidak</button>
+              <button
+                className="px-3 py-1.5 rounded-pill bg-teal-primary hover:bg-teal-dark text-white"
+                onClick={async () => {
+                  const pid = printPrompt.id
+                  const num = printPrompt.number
+                  setPrintPrompt(null)
+                  if (pid) await printApAdvanceById(pid)
+                  router.push('/keuangan/uang-muka-supplier')
+                }}
+              >Ya, Cetak</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

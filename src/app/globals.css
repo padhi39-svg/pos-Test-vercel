@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Flip7 Design System */
+  --pos-primary: #2BA8A2;
+  --pos-primary-hover: #1E8C86;
+  --pos-primary-light: #E8F6F5;
+  --pos-gold: #FFD23F;
+  --pos-gold-hover: #E6B800;
+  --pos-coral: #EF6C4A;
+  --pos-coral-hover: #D45233;
+  --pos-sky: #5DADE2;
+  --pos-sky-hover: #4A9FD1;
+  --pos-dark: #3C3C3C;
+  --pos-text: #3C3C3C;
+  --pos-text-secondary: #8E8E8E;
+  --pos-bg: #EFF8F7;
+  --pos-card-bg: #FFFFFF;
+  --pos-border: #E8F6F5;
+  --pos-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --pos-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  
+  /* Legacy gradients */
+  --sidebar-gradient: linear-gradient(180deg, #1e3a8a 0%, #0ea5e9 100%);
+  --header-gradient: linear-gradient(90deg, #22c55e 0%, #0ea5e9 100%);
+}
+
+html, body, :root {
+  height: 100%;
+}
+
+body {
+  @apply text-slate-800 text-sm;
+  background-color: #EFF8F7;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* POS Theme Utilities */
+.pos-primary-bg { background-color: var(--pos-primary); }
+.pos-primary-text { color: var(--pos-primary); }
+.pos-dark-text { color: var(--pos-dark); }
+.pos-secondary-text { color: var(--pos-text-secondary); }
+.pos-card { @apply bg-white rounded-2xl shadow-sm border border-[#E8F6F5]; }
+
+/* Flip7 Glow Shadows */
+.shadow-teal-glow { box-shadow: 0 4px 20px rgba(43, 168, 162, 0.3); }
+.shadow-gold-glow { box-shadow: 0 4px 20px rgba(255, 210, 63, 0.35); }
+.shadow-coral-glow { box-shadow: 0 4px 20px rgba(239, 108, 74, 0.35); }
+.shadow-sky-glow { box-shadow: 0 4px 16px rgba(93, 173, 226, 0.3); }
+
+/* Dashed section border */
+.section-divider { @apply border-b-2 border-dashed; border-color: rgba(43, 168, 162, 0.3); }
+
+.report-page {
+  @apply w-full max-w-[1520px] mx-auto space-y-3;
+}
+.report-title {
+  @apply text-base md:text-lg font-bold text-slate-800;
+}
+.report-subtitle {
+  @apply text-[11px] text-slate-600 mt-0.5;
+}
+.report-card {
+  @apply bg-white rounded-lg shadow-sm border border-slate-200;
+}
+.report-card-pad {
+  @apply p-2;
+}
+.report-table-wrapper {
+  @apply w-full max-w-full overflow-x-auto;
+}
+.report-table {
+  @apply text-[10px] w-full min-w-[1200px];
+}
+.report-table thead {
+  @apply sticky top-0 z-10;
+}
+thead[class*="bg-gradient-to-r"] {
+  @apply sticky top-0 z-10;
+}
+.report-table thead th {
+  @apply px-2 py-1 text-left font-semibold whitespace-nowrap text-[10px];
+}
+.report-table tbody td {
+  @apply px-2 py-1 text-[12px] font-semibold;
+}
+.report-table tfoot td {
+  @apply px-2 py-1 text-[10px];
+}
+
+.container-card {
+  @apply bg-white rounded-xl shadow-sm border border-slate-100;
+}
+
+.rounded-modal {
+  border-radius: 24px;
+}
+
+.rounded-card {
+  border-radius: 16px;
+}
+
+.btn-primary {
+  @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-colors text-sm;
+}
+
+.badge {
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600;
+}
+
+.select-teal option {
+  padding: 8px 12px;
+  background: #fff;
+  color: #475569;
+}
+.select-teal option:checked {
+  background: #2BA8A2;
+  color: #fff;
+}
+
+/* Promo landing transitions */
+@keyframes promoFadeSlideIn {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes promoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes promoScaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-promo-enter {
+  animation: promoFadeSlideIn 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.animate-promo-fade {
+  animation: promoFadeIn 0.5s ease-out;
+}
+.animate-promo-scale {
+  animation: promoScaleIn 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.promo-stagger > * {
+  animation: promoFadeSlideIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.promo-stagger > *:nth-child(1) { animation-delay: 0.08s; }
+.promo-stagger > *:nth-child(2) { animation-delay: 0.16s; }
+.promo-stagger > *:nth-child(3) { animation-delay: 0.24s; }
+.promo-stagger > *:nth-child(4) { animation-delay: 0.32s; }
+.promo-stagger > *:nth-child(5) { animation-delay: 0.40s; }
+.promo-stagger > *:nth-child(6) { animation-delay: 0.48s; }
+
+/* slide for PaketCard */
+.paket-slide-track {
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
