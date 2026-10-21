@@ -13,9 +13,30 @@ pnpm-debug.log*
 
 # Database
 data/
+*.db
+*.sqlite3
+*.dump
+db_dump.sql
+data.zip
 
 # Backup files
 backups/
+backup/
+
+# Binaries & archives
+local-helper/
+*.exe
+*.rar
+*.zip
+
+# Secrets / keys
+*.pem
+*.key
+
+# Logs (runtime)
+*.log
+devserver.*
+server-*.log
 
 # Rust build artifacts
 bin/print_helper_rs/target/
