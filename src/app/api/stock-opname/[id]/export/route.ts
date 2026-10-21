@@ -61,21 +61,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const rows = await getLatestCounts(null, id)
 
   try{
-    const ExcelJS = (await import('exceljs')).default
-    const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Opname')
-    ws.columns = [
-      { header: 'Kode Barang', key: 'kode', width: 24 },
-      { header: 'Qty (Base)', key: 'qty_base', width: 16 },
-    ]
-    for (const r of rows){
-      ws.addRow({ kode: r.kode || '', qty_base: Number(r.qty_base || 0) })
-    }
-    ws.getRow(1).font = { bold: true }
-    const buf = await wb.xlsx.writeBuffer()
+    const XLSX = await import('xlsx')
+    const data = rows.map((r: any) => ({
+      'Kode Barang': r.kode || '',
+      'Qty (Base)': Number(r.qty_base || 0),
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    ws['!cols'] = [{ wch: 24 }, { wch: 16 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Opname')
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
     const number: string = hdr.number || `Opname-${id}`
     const fileName = sanitizeFileName(`Opname ${number}.xlsx`)
-    return new Response(buf, {
+    return new Response(new Uint8Array(buf), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -84,6 +82,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       }
     })
   }catch(e:any){
-    return new Response(JSON.stringify({ error: 'Fitur export XLSX membutuhkan dependensi exceljs. Silakan install paket exceljs.' }), { status: 500 })
+    return new Response(JSON.stringify({ error: 'Gagal membuat file XLSX' }), { status: 500 })
   }
 }

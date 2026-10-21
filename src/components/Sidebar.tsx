@@ -6,9 +6,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { SYSTEM_MENUS, MENU_GROUPS } from '@/lib/menus'
-import { Plus_Jakarta_Sans } from 'next/font/google'
-
-const erpFont = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['600', '700'] })
 
 type NavChild = { label: string; href: string }
 type NavItem = { label: string; icon: React.ComponentType<any>; href: string; children?: NavChild[] }
@@ -303,7 +300,7 @@ export default function Sidebar({ mobileOpen = false, onClose, logoUrl: initialL
     {(!pathname.startsWith('/m/')) && mobileOpen && (
       <div className="md:hidden fixed inset-0 z-40">
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <div className={clsx('absolute inset-y-0 left-0 w-72 max-w-[80%] text-[var(--sidebar-text)] shadow-xl border-r border-slate-200', erpFont.className)} style={{ background: 'var(--sidebar-bg)' }}>
+        <div className={clsx('absolute inset-y-0 left-0 w-72 max-w-[80%] text-[var(--sidebar-text)] shadow-xl border-r border-slate-200')} style={{ background: 'var(--sidebar-bg)' }}>
           <div className="h-12 flex items-center px-3 gap-2 border-b border-slate-200">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded-lg object-cover" />

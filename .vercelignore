@@ -1,0 +1,18 @@
+dump-supabase.sql
+restore-supabase.log
+supabase-pass.txt
+Media Promo/
+promo-v2/
+build/
+bin/
+dist/
+data/
+backups/
+backup/
+local-helper/
+*.rar
+*.zip
+*.db
+*.sqlite3
+*.pem
+*.log
